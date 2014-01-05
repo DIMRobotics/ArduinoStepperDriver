@@ -15,6 +15,13 @@ void _StepperDriver::init()
 
 axis_t _StepperDriver::newAxis(uint8_t step, uint8_t dir, uint8_t enable)
 {
+        /* Library is limited in number of axis.
+         * If you need to control more axis, change NUM_AXIS
+         * in header file, but be careful! You are still limited
+         * in memory! */
+        if (_num_motors == NUM_AXIS)
+                return 255;
+
         _motors[_num_motors].step = step;
         _motors[_num_motors].dir = dir;
         _motors[_num_motors].enable = enable;
@@ -32,7 +39,8 @@ void _StepperDriver::enable(axis_t axis)
         if (axis >= _num_motors)
                 return;
         
-        digitalWrite(_motors[axis].enable, LOW);
+        if (_motors[axis].enable != 255)
+                digitalWrite(_motors[axis].enable, LOW);
 }
 
 void _StepperDriver::disable(axis_t axis)
@@ -40,7 +48,8 @@ void _StepperDriver::disable(axis_t axis)
         if (axis >= _num_motors)
                 return;
         
-        digitalWrite(_motors[axis].enable, HIGH);
+        if (_motors[axis].enable != 255)
+                digitalWrite(_motors[axis].enable, HIGH);
 }
 
 void _StepperDriver::setDir(axis_t axis, uint8_t dir)
