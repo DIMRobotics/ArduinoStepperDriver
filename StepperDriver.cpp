@@ -77,7 +77,7 @@ void _StepperDriver::setSpeed(axis_t axis, uint16_t value)
         setDelay(axis, value);
 }
 
-void _StepperDriver::write(axis_t axis, int16_t value)
+void _StepperDriver::write(axis_t axis, int32_t value)
 {
         if (axis >= _num_motors)
                 return;
@@ -89,10 +89,10 @@ void _StepperDriver::write(axis_t axis, int16_t value)
                 setDir(axis, FORWARD);
         }
         
-        setSpeed(axis, value);
+        setSpeed(axis, (uint16_t) value);
 }
 
-void _StepperDriver::write(axis_t axis, int16_t speed, uint32_t path)
+void _StepperDriver::write(axis_t axis, int32_t speed, uint32_t path)
 {
         if (axis >= _num_motors)
                 return;
@@ -119,7 +119,7 @@ void _StepperDriver::wait(axis_t axis)
                 asm volatile ("nop");
 }
 
-void _StepperDriver::move(axis_t axis, int16_t speed, uint32_t path)
+void _StepperDriver::move(axis_t axis, int32_t speed, uint32_t path)
 {
         write(axis, speed, path);
         wait(axis);

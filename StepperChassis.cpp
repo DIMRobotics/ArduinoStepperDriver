@@ -12,7 +12,7 @@ void _StepperChassis::write(int16_t left, int16_t right)
         StepperDriver.write(_right, right);
 }
 
-void _StepperDriver::stop()
+void _StepperChassis::stop()
 {
         write(0, 0);
 }

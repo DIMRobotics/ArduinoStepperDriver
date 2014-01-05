@@ -58,9 +58,9 @@ public:
         void setDir(axis_t axis, uint8_t dir);
         void setDelay(axis_t axis, uint16_t val);
         void setSpeed(axis_t axis, uint16_t val); /* convert speed to delay */
-        void write(axis_t axis, int16_t speed); /* continious rotation of engine */
-        void write(axis_t axis, int16_t speed, uint32_t path); /* rotate engine to set path */
-        void move(axis_t axis, int16_t speed, uint32_t path); /* rotate engine to set path */
+        void write(axis_t axis, int32_t speed); /* continious rotation of engine */
+        void write(axis_t axis, int32_t speed, uint32_t path); /* rotate engine to set path */
+        void move(axis_t axis, int32_t speed, uint32_t path); /* rotate engine to set path */
         void stop(axis_t axis); /* e-stop */
         uint8_t busy(axis_t axis);
         void wait(axis_t axis);
