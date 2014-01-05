@@ -1,10 +1,10 @@
-#include "Stepper.h"
+#include "StepperDriver.h"
 #include <avr/interrupt.h>
 
 static volatile struct stepper_motor _motors[NUM_AXIS];
 static volatile uint8_t _num_motors = 0;
 
-void _Stepper::init()
+void _StepperDriver::init()
 {
         /* Configure timer */
         /* Timer2, prescaler /1, enable overflow interrupt */
@@ -13,7 +13,7 @@ void _Stepper::init()
         TIMSK2 = (1<<TOIE2); /* overflow interrupt */
 }
 
-uint8_t _Stepper::newAxis(uint8_t step, uint8_t dir, uint8_t enable)
+axis_t _StepperDriver::newAxis(uint8_t step, uint8_t dir, uint8_t enable)
 {
         _motors[_num_motors].step = step;
         _motors[_num_motors].dir = dir;
@@ -27,7 +27,7 @@ uint8_t _Stepper::newAxis(uint8_t step, uint8_t dir, uint8_t enable)
         return _num_motors++;
 }
 
-void _Stepper::enable(uint8_t axis)
+void _StepperDriver::enable(axis_t axis)
 {
         if (axis >= _num_motors)
                 return;
@@ -35,7 +35,7 @@ void _Stepper::enable(uint8_t axis)
         digitalWrite(_motors[axis].enable, LOW);
 }
 
-void _Stepper::disable(uint8_t axis)
+void _StepperDriver::disable(axis_t axis)
 {
         if (axis >= _num_motors)
                 return;
@@ -43,7 +43,7 @@ void _Stepper::disable(uint8_t axis)
         digitalWrite(_motors[axis].enable, HIGH);
 }
 
-void _Stepper::setDir(uint8_t axis, uint8_t dir)
+void _StepperDriver::setDir(axis_t axis, uint8_t dir)
 {
         if (axis >= _num_motors)
                 return;
@@ -52,24 +52,91 @@ void _Stepper::setDir(uint8_t axis, uint8_t dir)
         _motors[axis]._dir = dir == FORWARD ? 1 : -1;
 }
 
-void _Stepper::setDelay(uint8_t axis, uint16_t delay)
+void _StepperDriver::setDelay(axis_t axis, uint16_t delay)
 {
         if (axis >= _num_motors)
                 return;
         
         _motors[axis]._base_delay = delay;
+        _motors[axis]._rq_path = 0;
 }
 
-void _Stepper::setSpeed(uint8_t axis, uint16_t value)
+void _StepperDriver::setSpeed(axis_t axis, uint16_t value)
 {
         if (value != 0)
                 value = 65535 / value;
         setDelay(axis, value);
 }
 
-_Stepper Stepper;
+void _StepperDriver::write(axis_t axis, int16_t value)
+{
+        if (axis >= _num_motors)
+                return;
+        
+        if (value < 0) {
+                value = -value;
+                setDir(axis, BACKWARD);
+        } else {
+                setDir(axis, FORWARD);
+        }
+        
+        setSpeed(axis, value);
+}
 
-/* Special interrupt service functions */
+void _StepperDriver::write(axis_t axis, int16_t speed, uint32_t path)
+{
+        if (axis >= _num_motors)
+                return;
+        
+        write(axis, speed);
+        _motors[axis]._rq_path = path;
+}
+
+void _StepperDriver::stop(axis_t axis)
+{
+        write(axis, 0);
+}
+
+uint8_t _StepperDriver::busy(axis_t axis)
+{
+        if (axis >= _num_motors)
+                return 0;
+        return _motors[axis]._rq_path > 0;
+}
+
+void _StepperDriver::wait(axis_t axis)
+{
+        while (busy(axis))
+                asm volatile ("nop");
+}
+
+void _StepperDriver::move(axis_t axis, int16_t speed, uint32_t path)
+{
+        write(axis, speed, path);
+        wait(axis);
+}
+
+int32_t _StepperDriver::getPath(axis_t axis)
+{
+        if (axis >= _num_motors)
+                return 0;
+
+        return _motors[axis].path;
+}
+
+void _StepperDriver::resetPath(axis_t axis)
+{
+        if (axis >= _num_motors)
+                return;
+        
+        _motors[axis].path = 0;
+}
+
+_StepperDriver StepperDriver;
+
+/*
+ * Special interrupt service functions 
+ */
 
 static inline void toggle(volatile struct stepper_motor *s)
 {
@@ -81,6 +148,12 @@ static inline void toggle(volatile struct stepper_motor *s)
                 
                 s->path += s->_dir;
                 s->_state = !(s->_state);
+
+                if (s->_rq_path > 0) { /* path limit detector */
+                        s->_rq_path--;
+                        if (s->_rq_path == 0)
+                                s->_base_delay = 0;
+                }
         }
 }
 

@@ -1,0 +1,41 @@
+#######################################
+# Syntax Coloring Map For Test
+#######################################
+
+#######################################
+# Objects (KEYWORD3)
+#######################################
+
+StepperDriver	KEYWORD3
+StepperChassis	KEYWORD3
+
+#######################################
+# Datatypes (KEYWORD2)
+#######################################
+
+axis_t	KEYWORD2
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+init	KEYWORD2
+newAxis	KEYWORD2
+enable	KEYWORD2
+disable	KEYWORD2
+setDir	KEYWORD2
+setDelay	KEYWORD2
+setSpeed	KEYWORD2
+write	KEYWORD2
+stop	KEYWORD2
+getPath	KEYWORD2
+resetPath	KEYWORD2
+busy	KEYWORD2
+wait	KEYWORD2
+move	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+FORWARD	LITERAL1
+BACKWARD	LITERAL1
