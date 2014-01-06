@@ -1,5 +1,6 @@
 #include "StepperDriver.h"
 #include <avr/interrupt.h>
+#include <util/atomic.h>
 
 static volatile struct stepper_motor _motors[NUM_AXIS];
 static volatile uint8_t _num_motors = 0;
@@ -34,13 +35,22 @@ axis_t _StepperDriver::newAxis(uint8_t step, uint8_t dir, uint8_t enable)
         return _num_motors++;
 }
 
+axis_t _StepperDriver::newAxis(uint8_t step, uint8_t dir)
+{
+        return newAxis(step, dir, 255); /* auto-ignoring ENABLE pin feature */
+}
+
 void _StepperDriver::enable(axis_t axis)
 {
         if (axis >= _num_motors)
                 return;
         
         if (_motors[axis].enable != 255)
+        #ifdef INVERSE_ENABLE_LEVELS
+                digitalWrite(_motors[axis].enable, HIGH);
+        #else
                 digitalWrite(_motors[axis].enable, LOW);
+        #endif
 }
 
 void _StepperDriver::disable(axis_t axis)
@@ -49,7 +59,11 @@ void _StepperDriver::disable(axis_t axis)
                 return;
         
         if (_motors[axis].enable != 255)
+        #ifdef INVERSE_ENABLE_LEVELS
+                digitalWrite(_motors[axis].enable, LOW);
+        #else
                 digitalWrite(_motors[axis].enable, HIGH);
+        #endif
 }
 
 void _StepperDriver::setDir(axis_t axis, uint8_t dir)
@@ -66,7 +80,7 @@ void _StepperDriver::setDelay(axis_t axis, uint16_t delay)
         if (axis >= _num_motors)
                 return;
         
-        _motors[axis]._base_delay = delay;
+        _motors[axis]._base_delay = delay / 16; /* this division is for conversion to microseconds */
         _motors[axis]._rq_path = 0;
 }
 
@@ -110,11 +124,22 @@ uint8_t _StepperDriver::busy(axis_t axis)
 {
         if (axis >= _num_motors)
                 return 0;
-        return _motors[axis]._rq_path > 0;
+        
+        uint8_t ret;
+
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+        {
+                ret = _motors[axis]._base_delay > 0;
+        }
+
+        return ret;
 }
 
 void _StepperDriver::wait(axis_t axis)
 {
+        if (axis >= _num_motors || getPath(axis) == 0)
+                return;
+
         while (busy(axis))
                 asm volatile ("nop");
 }
@@ -129,8 +154,14 @@ int32_t _StepperDriver::getPath(axis_t axis)
 {
         if (axis >= _num_motors)
                 return 0;
-
-        return _motors[axis].path;
+        
+        int32_t val;
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+        {
+                val = _motors[axis].path;
+        }
+        
+        return val;
 }
 
 void _StepperDriver::resetPath(axis_t axis)
@@ -138,7 +169,10 @@ void _StepperDriver::resetPath(axis_t axis)
         if (axis >= _num_motors)
                 return;
         
-        _motors[axis].path = 0;
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+        {
+                _motors[axis].path = 0;
+        }
 }
 
 _StepperDriver StepperDriver;

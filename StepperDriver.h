@@ -7,19 +7,25 @@
 /* Number of parsing axis */
 #define NUM_AXIS 3
 
+/* Configuration of enable pins.
+ * In most drivers, LOW level is active for ENABLE pins.
+ * Uncomment this line to inverse ENBALE pins level
+ */
+//#define INVERSE_ENABLE_LEVELS
+
 /* Configuration of chassis; if forward direction set by HIGH
  * level on DIR pin, it is a direct levels, otherwise it is
  * inversed levels.
  *
  * Uncomment if your chassis configuration is inversed
  */
-//#define INVERSE_LEVELS
+//#define INVERSE_DIR_LEVELS
 
 /* Use timer2 for ATmega32U4 and ATmega328P to not
  * crash all things in Arduino environment 
  */
 
-#ifdef INVERSE_LEVELS
+#ifdef INVERSE_DIR_LEVELS
 typedef enum {
         FORWARD = LOW,
         BACKWARD = HIGH
@@ -52,6 +58,7 @@ public:
         void init();
         
         axis_t newAxis(uint8_t step, uint8_t dir, uint8_t enable);
+        axis_t newAxis(uint8_t step, uint8_t dir);
 
         void enable(axis_t axis);
         void disable(axis_t axis);
