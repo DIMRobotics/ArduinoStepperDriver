@@ -80,8 +80,11 @@ void _StepperDriver::setDelay(axis_t axis, uint16_t delay)
         if (axis >= _num_motors)
                 return;
         
-        _motors[axis]._base_delay = delay / 16; /* this division is for conversion to microseconds */
-        _motors[axis]._rq_path = 0;
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+        {
+                _motors[axis]._base_delay = delay / 16; /* this division is for conversion to microseconds */
+                _motors[axis]._rq_path = 0;
+        }
 }
 
 void _StepperDriver::setSpeed(axis_t axis, uint16_t value)
@@ -112,7 +115,10 @@ void _StepperDriver::write(axis_t axis, int32_t speed, uint32_t path)
                 return;
         
         write(axis, speed);
-        _motors[axis]._rq_path = path;
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+        {
+                _motors[axis]._rq_path = path;
+        }
 }
 
 void _StepperDriver::stop(axis_t axis)
