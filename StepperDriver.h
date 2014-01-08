@@ -43,6 +43,7 @@ struct stepper_motor {
         uint8_t step; /* step pin */
         uint8_t dir; /* dir pin */
         uint8_t enable; /* enable pin, 255 is empty value */
+        uint16_t steps; /* number of steps per revolution */
         int32_t path;
 
         int8_t _dir; /* direction coefficient */
@@ -57,8 +58,8 @@ class _StepperDriver
 public:
         void init();
         
-        axis_t newAxis(uint8_t step, uint8_t dir, uint8_t enable);
-        axis_t newAxis(uint8_t step, uint8_t dir);
+        axis_t newAxis(uint8_t step, uint8_t dir, uint8_t enable, uint16_t steps);
+        axis_t newAxis(uint8_t step, uint8_t dir, uint16_t steps);
 
         void enable(axis_t axis);
         void disable(axis_t axis);

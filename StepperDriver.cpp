@@ -14,7 +14,7 @@ void _StepperDriver::init()
         TIMSK2 = (1<<TOIE2); /* overflow interrupt */
 }
 
-axis_t _StepperDriver::newAxis(uint8_t step, uint8_t dir, uint8_t enable)
+axis_t _StepperDriver::newAxis(uint8_t step, uint8_t dir, uint8_t enable, uint16_t steps)
 {
         /* Library is limited in number of axis.
          * If you need to control more axis, change NUM_AXIS
@@ -26,6 +26,7 @@ axis_t _StepperDriver::newAxis(uint8_t step, uint8_t dir, uint8_t enable)
         _motors[_num_motors].step = step;
         _motors[_num_motors].dir = dir;
         _motors[_num_motors].enable = enable;
+        _motors[_num_motors].steps = steps;
         
         pinMode(step, OUTPUT);
         pinMode(dir, OUTPUT);
@@ -35,9 +36,9 @@ axis_t _StepperDriver::newAxis(uint8_t step, uint8_t dir, uint8_t enable)
         return _num_motors++;
 }
 
-axis_t _StepperDriver::newAxis(uint8_t step, uint8_t dir)
+axis_t _StepperDriver::newAxis(uint8_t step, uint8_t dir, uint16_t steps)
 {
-        return newAxis(step, dir, 255); /* auto-ignoring ENABLE pin feature */
+        return newAxis(step, dir, 255, steps); /* auto-ignoring ENABLE pin feature */
 }
 
 void _StepperDriver::enable(axis_t axis)
@@ -79,6 +80,9 @@ void _StepperDriver::setDelay(axis_t axis, uint16_t delay)
 {
         if (axis >= _num_motors)
                 return;
+
+        if (delay != 0 && delay < 16)
+                delay = 16;
         
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
         {
@@ -89,8 +93,11 @@ void _StepperDriver::setDelay(axis_t axis, uint16_t delay)
 
 void _StepperDriver::setSpeed(axis_t axis, uint16_t value)
 {
+        if (axis >= _num_motors)
+                return;
+
         if (value != 0)
-                value = 65535 / value;
+                value = 60000000 / _motors[axis].steps / value;
         setDelay(axis, value);
 }
 
